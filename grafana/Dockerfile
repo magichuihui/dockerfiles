@@ -34,11 +34,11 @@ RUN --mount=type=cache,target=/go/pkg/mod \
     go get go.opentelemetry.io/otel/sdk@v1.43.0
 
 # Build Go binaries with -p=1 to minimize memory usage
+# Grafana 13 uses a unified binary at pkg/cmd/grafana
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
     mkdir -p /tmp/out && \
-    go build -p=1 -o /tmp/out/ ./pkg/cmd/grafana-server && \
-    go build -p=1 -o /tmp/out/ ./pkg/cmd/grafana-cli
+    go build -p=1 -o /tmp/out/grafana ./pkg/cmd/grafana
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
@@ -51,7 +51,8 @@ LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
 COPY --chown=65532:65532 --from=release /tmp/grafana-release/ /usr/share/grafana/
-COPY --chown=65532:65532 --from=go-builder /tmp/out/ /usr/share/grafana/bin/
+# Override with our compiled binary (rename grafana→grafana-server for entrypoint compat)
+COPY --chown=65532:65532 --from=go-builder /tmp/out/grafana /usr/share/grafana/bin/grafana-server
 
 RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
     && chown -R 65532:65532 /var/lib/grafana /var/log/grafana
