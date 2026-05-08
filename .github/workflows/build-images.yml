@@ -143,7 +143,7 @@ jobs:
           format: table
           exit-code: ${{ github.event_name == 'pull_request' && 1 || 0 }}
           severity: CRITICAL,HIGH
-          hide-unfixed: true
+          ignore-unfixed: true
         continue-on-error: ${{ github.event_name != 'pull_request' }}
 
       # -------------------------------------------------------
