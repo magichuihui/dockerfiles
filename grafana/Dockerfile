@@ -37,8 +37,7 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 # Grafana 13 uses a unified binary at pkg/cmd/grafana
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    mkdir -p /tmp/out && \
-    go build -p=1 -o /tmp/out/grafana ./pkg/cmd/grafana
+    CGO_ENABLED=1 go build -p=1 -tags oss -o /tmp/out/grafana ./pkg/cmd/grafana
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
