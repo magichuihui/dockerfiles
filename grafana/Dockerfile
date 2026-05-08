@@ -30,7 +30,9 @@ LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 COPY --chown=65532:65532 --from=release /tmp/grafana-release/ /usr/share/grafana/
 
 # Override binary with CI-compiled version (patched deps, newer Go toolchain)
+# Replaces both grafana-server and the release tarball's grafana binary
 COPY --chown=65532:65532 grafana-server /usr/share/grafana/bin/grafana-server
+COPY --chown=65532:65532 grafana-server /usr/share/grafana/bin/grafana
 
 # Directories created in release stage (which has a shell) then COPY'd here
 # because Chainguard glibc-dynamic has no shell for RUN commands
