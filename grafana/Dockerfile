@@ -45,13 +45,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /tmp/root/ /
 
 # Create data / log directories with correct ownership
-RUN mkdir -p /var/lib/grafana /var/log/grafana \
+RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
     && chown -R grafana:grafana \
       /var/lib/grafana \
       /var/log/grafana \
       /usr/share/grafana \
-      /etc/grafana \
-      /var/lib/grafana/plugins
+      /etc/grafana
 
 # Drop privileges
 USER grafana
