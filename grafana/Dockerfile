@@ -18,21 +18,27 @@ FROM golang:${GO_VERSION}-alpine AS go-builder
 
 ARG GRAFANA_VERSION
 
-RUN apk add --no-cache bash make git curl build-base && \
-    mkdir -p /tmp/grafana-src && \
+RUN apk add --no-cache curl git build-base
+RUN mkdir -p /tmp/grafana-src && \
     curl -fsSL \
     "https://github.com/grafana/grafana/archive/refs/tags/v${GRAFANA_VERSION}.tar.gz" \
     | tar xz -C /tmp/grafana-src --strip-components=1
 
 WORKDIR /tmp/grafana-src
 
+# Download modules and patch vulnerable dependencies
+RUN --mount=type=cache,target=/go/pkg/mod \
+    go mod download && \
+    go get github.com/jackc/pgx/v5@v5.9.0 && \
+    go get github.com/apache/thrift@v0.23.0 && \
+    go get go.opentelemetry.io/otel/sdk@v1.43.0
+
+# Build Go binaries with -p=1 to minimize memory usage
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    GOMAXPROCS=2 go mod download && \
-    GOMAXPROCS=2 go get github.com/jackc/pgx/v5@v5.9.0 && \
-    GOMAXPROCS=2 go get github.com/apache/thrift@v0.23.0 && \
-    GOMAXPROCS=2 go get go.opentelemetry.io/otel/sdk@v1.43.0 && \
-    MAKEFLAGS="-j2" GOMAXPROCS=2 make build-go GO_BUILD_TAGS=oss WIRE_TAGS=oss
+    mkdir -p /tmp/out && \
+    go build -p=1 -o /tmp/out/ ./pkg/cmd/grafana-server && \
+    go build -p=1 -o /tmp/out/ ./pkg/cmd/grafana-cli
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
@@ -45,7 +51,7 @@ LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
 COPY --chown=65532:65532 --from=release /tmp/grafana-release/ /usr/share/grafana/
-COPY --chown=65532:65532 --from=go-builder /tmp/grafana-src/bin/ /usr/share/grafana/bin/
+COPY --chown=65532:65532 --from=go-builder /tmp/out/ /usr/share/grafana/bin/
 
 RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
     && chown -R 65532:65532 /var/lib/grafana /var/log/grafana
