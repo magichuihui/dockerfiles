@@ -1,32 +1,52 @@
 # syntax=docker/dockerfile:1
-FROM debian:bookworm-slim AS builder
-
 ARG GRAFANA_VERSION=13.0.1
 ARG TARGETARCH=amd64
+ARG GO_VERSION=1.26.2
 
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && curl -fsSL \
-      "https://dl.grafana.com/oss/release/grafana_${GRAFANA_VERSION}_${TARGETARCH}.deb" \
-      -o /tmp/grafana.deb \
-    && mkdir -p /tmp/root \
-    && dpkg-deb -x /tmp/grafana.deb /tmp/root \
-    && mkdir -p /tmp/root/var/lib/grafana /tmp/root/var/log/grafana /tmp/root/var/lib/grafana/plugins
+FROM alpine:3.20 AS release
+
+ARG GRAFANA_VERSION
+ARG TARGETARCH
+
+RUN apk add --no-cache curl ca-certificates tar && \
+    curl -fsSL \
+    "https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${TARGETARCH}.tar.gz" \
+    | tar xz -C /tmp/
+
+FROM golang:${GO_VERSION}-alpine AS go-builder
+
+ARG GRAFANA_VERSION
+
+RUN apk add --no-cache bash make git curl build-base && \
+    curl -fsSL \
+    "https://github.com/grafana/grafana/archive/refs/tags/v${GRAFANA_VERSION}.tar.gz" \
+    | tar xz -C /tmp/
+
+WORKDIR /tmp/grafana-${GRAFANA_VERSION}
+
+RUN go mod download && \
+    go get github.com/jackc/pgx/v5@v5.9.0 && \
+    go get github.com/apache/thrift@v0.23.0 && \
+    go get go.opentelemetry.io/otel/sdk@v1.43.0
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    make build-go GO_BUILD_TAGS=oss WIRE_TAGS=oss
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
+ARG GRAFANA_VERSION
 ARG SOURCE_REPO="https://github.com/magichuihui/dockerfiles"
 
 LABEL org.opencontainers.image.title="Grafana (self-built)"
-LABEL org.opencontainers.image.description="Minimal Grafana on Chainguard glibc-dynamic — zero CVEs"
+LABEL org.opencontainers.image.description="Built from source with patched deps on Chainguard"
 LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
-COPY --chown=65532:65532 --from=builder /tmp/root/usr/share/grafana /usr/share/grafana
-COPY --chown=65532:65532 --from=builder /tmp/root/etc/grafana /etc/grafana
-COPY --chown=65532:65532 --from=builder /tmp/root/var/lib/grafana /var/lib/grafana
+COPY --chown=65532:65532 --from=release /tmp/grafana-v${GRAFANA_VERSION}/ /usr/share/grafana/
+COPY --chown=65532:65532 --from=go-builder /tmp/grafana-${GRAFANA_VERSION}/bin/ /usr/share/grafana/bin/
+
+RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
+    && chown -R 65532:65532 /var/lib/grafana /var/log/grafana
 
 USER 65532
 WORKDIR /usr/share/grafana
