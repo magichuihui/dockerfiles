@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM debian:bookworm-slim AS builder
 
-ARG GRAFANA_VERSION=13.0.0
+ARG GRAFANA_VERSION=13.0.1
 ARG TARGETARCH=amd64
 
 # hadolint ignore=DL3008
