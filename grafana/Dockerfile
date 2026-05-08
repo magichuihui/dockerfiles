@@ -12,7 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       "https://dl.grafana.com/oss/release/grafana_${GRAFANA_VERSION}_${TARGETARCH}.deb" \
       -o /tmp/grafana.deb \
     && mkdir -p /tmp/root \
-    && dpkg-deb -x /tmp/grafana.deb /tmp/root
+    && dpkg-deb -x /tmp/grafana.deb /tmp/root \
+    && mkdir -p /tmp/root/var/lib/grafana /tmp/root/var/log/grafana /tmp/root/var/lib/grafana/plugins
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
@@ -23,15 +24,9 @@ LABEL org.opencontainers.image.description="Minimal Grafana on Chainguard glibc-
 LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
-COPY --from=builder /tmp/root/usr/share/grafana /usr/share/grafana
-COPY --from=builder /tmp/root/etc/grafana /etc/grafana
-
-RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
-    && chown -R 65532:65532 \
-      /var/lib/grafana \
-      /var/log/grafana \
-      /usr/share/grafana \
-      /etc/grafana
+COPY --chown=65532:65532 --from=builder /tmp/root/usr/share/grafana /usr/share/grafana
+COPY --chown=65532:65532 --from=builder /tmp/root/etc/grafana /etc/grafana
+COPY --chown=65532:65532 --from=builder /tmp/root/var/lib/grafana /var/lib/grafana
 
 USER 65532
 WORKDIR /usr/share/grafana
