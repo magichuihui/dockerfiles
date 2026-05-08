@@ -13,6 +13,9 @@ RUN apk add --no-cache curl ca-certificates tar && \
     "https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${TARGETARCH}.tar.gz" \
     | tar xz -C /tmp/grafana-release --strip-components=1
 
+RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins && \
+    chown -R 65532:65532 /var/lib/grafana /var/log/grafana
+
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
 ARG GRAFANA_VERSION
@@ -29,8 +32,10 @@ COPY --chown=65532:65532 --from=release /tmp/grafana-release/ /usr/share/grafana
 # Override binary with CI-compiled version (patched deps, newer Go toolchain)
 COPY --chown=65532:65532 grafana-server /usr/share/grafana/bin/grafana-server
 
-RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
-    && chown -R 65532:65532 /var/lib/grafana /var/log/grafana
+# Directories created in release stage (which has a shell) then COPY'd here
+# because Chainguard glibc-dynamic has no shell for RUN commands
+COPY --chown=65532:65532 --from=release /var/lib/grafana /var/lib/grafana
+COPY --chown=65532:65532 --from=release /var/log/grafana /var/log/grafana
 
 USER 65532
 WORKDIR /usr/share/grafana
