@@ -22,7 +22,7 @@ RUN apk add --no-cache bash make git curl build-base && \
     "https://github.com/grafana/grafana/archive/refs/tags/v${GRAFANA_VERSION}.tar.gz" \
     | tar xz -C /tmp/
 
-WORKDIR /tmp/grafana-${GRAFANA_VERSION}
+WORKDIR /tmp/grafana-v${GRAFANA_VERSION}
 
 RUN go mod download && \
     go get github.com/jackc/pgx/v5@v5.9.0 && \
@@ -42,8 +42,8 @@ LABEL org.opencontainers.image.description="Built from source with patched deps 
 LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
-COPY --chown=65532:65532 --from=release /tmp/grafana-v${GRAFANA_VERSION}/ /usr/share/grafana/
-COPY --chown=65532:65532 --from=go-builder /tmp/grafana-${GRAFANA_VERSION}/bin/ /usr/share/grafana/bin/
+COPY --chown=65532:65532 --from=release /tmp/grafana-${GRAFANA_VERSION}/ /usr/share/grafana/
+COPY --chown=65532:65532 --from=go-builder /tmp/grafana-v${GRAFANA_VERSION}/bin/ /usr/share/grafana/bin/
 
 RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
     && chown -R 65532:65532 /var/lib/grafana /var/log/grafana
