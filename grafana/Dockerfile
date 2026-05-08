@@ -23,7 +23,8 @@ LABEL org.opencontainers.image.description="Minimal Grafana on Chainguard glibc-
 LABEL org.opencontainers.image.source="${SOURCE_REPO}"
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
 
-COPY --from=builder /tmp/root/ /
+COPY --from=builder /tmp/root/usr/share/grafana /usr/share/grafana
+COPY --from=builder /tmp/root/etc/grafana /etc/grafana
 
 RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins \
     && chown -R 65532:65532 \
