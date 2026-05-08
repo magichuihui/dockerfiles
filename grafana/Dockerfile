@@ -26,18 +26,18 @@ RUN mkdir -p /tmp/grafana-src && \
 
 WORKDIR /tmp/grafana-src
 
-# Download modules and patch vulnerable dependencies
+# Download modules and patch vulnerable dependencies (GOWORK=off avoids workspace overhead)
 RUN --mount=type=cache,target=/go/pkg/mod \
-    go mod download && \
-    go get github.com/jackc/pgx/v5@v5.9.0 && \
-    go get github.com/apache/thrift@v0.23.0 && \
-    go get go.opentelemetry.io/otel/sdk@v1.43.0
+    GOWORK=off go mod download && \
+    GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0 && \
+    GOWORK=off go get github.com/apache/thrift@v0.23.0 && \
+    GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
 
 # Build Go binaries with -p=1 to minimize memory usage
 # Grafana 13 uses a unified binary at pkg/cmd/grafana
 RUN --mount=type=cache,target=/go/pkg/mod \
     --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=1 go build -p=1 -tags oss -o /tmp/out/grafana ./pkg/cmd/grafana
+    GOWORK=off CGO_ENABLED=1 go build -p=1 -tags oss -o /tmp/out/grafana ./pkg/cmd/grafana
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
