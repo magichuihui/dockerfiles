@@ -26,13 +26,13 @@ RUN apk add --no-cache bash make git curl build-base && \
 
 WORKDIR /tmp/grafana-src
 
-RUN go mod download && \
-    go get github.com/jackc/pgx/v5@v5.9.0 && \
-    go get github.com/apache/thrift@v0.23.0 && \
-    go get go.opentelemetry.io/otel/sdk@v1.43.0
-
 RUN --mount=type=cache,target=/go/pkg/mod \
-    make build-go GO_BUILD_TAGS=oss WIRE_TAGS=oss
+    --mount=type=cache,target=/root/.cache/go-build \
+    GOMAXPROCS=2 go mod download && \
+    GOMAXPROCS=2 go get github.com/jackc/pgx/v5@v5.9.0 && \
+    GOMAXPROCS=2 go get github.com/apache/thrift@v0.23.0 && \
+    GOMAXPROCS=2 go get go.opentelemetry.io/otel/sdk@v1.43.0 && \
+    MAKEFLAGS="-j2" GOMAXPROCS=2 make build-go GO_BUILD_TAGS=oss WIRE_TAGS=oss
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
