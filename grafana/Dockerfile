@@ -1,4 +1,4 @@
-FROM cgr.dev/chainguard/grafana:13
+FROM cgr.dev/chainguard/grafana:latest
 
 ARG SOURCE_REPO="https://github.com/magichuihui/dockerfiles"
 
