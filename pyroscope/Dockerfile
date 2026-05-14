@@ -9,7 +9,7 @@ ARG TARGETARCH
 RUN apk add --no-cache curl tar && \
     curl -fsSL \
     "https://github.com/grafana/pyroscope/releases/download/v${VERSION}/pyroscope_${VERSION}_linux_${TARGETARCH}.tar.gz" \
-    | tar xz -C /tmp --strip-components=1 && \
+    | tar xz -C /tmp && \
     install -m 755 /tmp/pyroscope /usr/local/bin/pyroscope
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest

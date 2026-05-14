@@ -11,8 +11,9 @@ RUN apk add --no-cache curl unzip && \
     "https://github.com/grafana/loki/releases/download/v${VERSION}/loki-linux-${TARGETARCH}.zip" \
     -o /tmp/loki.zip && \
     unzip -j /tmp/loki.zip -d /tmp && \
-    rm /tmp/loki.zip && \
-    install -m 755 /tmp/loki /usr/local/bin/loki
+    mv /tmp/loki-linux-${TARGETARCH} /tmp/loki && \
+    install -m 755 /tmp/loki /usr/local/bin/loki && \
+    rm /tmp/loki.zip
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
