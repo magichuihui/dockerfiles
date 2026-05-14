@@ -109,7 +109,7 @@ jobs:
         if: matrix.image == 'grafana'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.26.3'
+          go-version: '1.26.2'
 
       - name: Build Grafana binary from source (patched deps, newer Go)
         if: matrix.image == 'grafana'
@@ -122,7 +122,6 @@ jobs:
             | tar xz --strip-components=1 -C grafana-src
           cd grafana-src
           GOWORK=off go mod download
-          # Patch Go dependencies for known CVEs (stdlib CVEs fixed by Go 1.26.3)
           GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
           GOWORK=off go get github.com/apache/thrift@v0.23.0
           GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
