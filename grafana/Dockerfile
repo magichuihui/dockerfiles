@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG GRAFANA_VERSION=13.0.1
+ARG GRAFANA_VERSION=12.4.3+security-02
 ARG TARGETARCH=amd64
 
 FROM alpine:3.20 AS release
