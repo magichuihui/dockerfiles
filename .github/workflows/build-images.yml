@@ -116,12 +116,16 @@ jobs:
         run: |
           set -eux
           GRAFANA_VERSION="${{ steps.grafana-version.outputs.version }}"
-          ENCODED_VERSION="${{ steps.grafana-version.outputs.encoded-version }}"
+          # v12.4.3+security-02 source has a compilation bug in pkg/tsdb/loki/scopes.go
+          # Use v13.0.1 source (compiles cleanly) for binary, release tarball for assets
           mkdir -p grafana-src && curl -fsSL \
-            "https://github.com/grafana/grafana/archive/refs/tags/v${ENCODED_VERSION}.tar.gz" \
+            "https://github.com/grafana/grafana/archive/refs/tags/v13.0.1.tar.gz" \
             | tar xz --strip-components=1 -C grafana-src
           cd grafana-src
           GOWORK=off go mod download
+          GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
+          GOWORK=off go get github.com/apache/thrift@v0.23.0
+          GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
           GOWORK=off CGO_ENABLED=1 go build -p=1 -tags oss \
             -o "../grafana/grafana-server" ./pkg/cmd/grafana
 
