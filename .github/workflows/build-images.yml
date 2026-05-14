@@ -122,9 +122,6 @@ jobs:
             | tar xz --strip-components=1 -C grafana-src
           cd grafana-src
           GOWORK=off go mod download
-          GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
-          GOWORK=off go get github.com/apache/thrift@v0.23.0
-          GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
           GOWORK=off CGO_ENABLED=1 go build -p=1 -tags oss \
             -o "../grafana/grafana-server" ./pkg/cmd/grafana
 
