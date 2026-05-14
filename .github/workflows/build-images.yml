@@ -92,8 +92,8 @@ jobs:
         id: grafana-version
         run: |
           FULL_VERSION=$(grep '^ARG GRAFANA_VERSION=' grafana/Dockerfile | cut -d= -f2)
-          # URL-encode + for GitHub archive URL (%2B)
-          ENCODED_VERSION=$(echo "$FULL_VERSION" | sed 's/\+/%2B/g')
+          # Proper URL-encode for GitHub archive URL (handles +, spaces, etc.)
+          ENCODED_VERSION=$(echo -n "$FULL_VERSION" | jq -sRr @uri)
           # Sanitize for Docker tag: replace + with -
           SAFE_TAG=$(echo "$FULL_VERSION" | tr '+' '-')
           echo "version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
@@ -117,11 +117,11 @@ jobs:
           set -eux
           GRAFANA_VERSION="${{ steps.grafana-version.outputs.version }}"
           ENCODED_VERSION="${{ steps.grafana-version.outputs.encoded-version }}"
-          # Use URL-encoded version in URL (e.g. + -> %2B), full version for directory name
+          # --one-top-level avoids issues with special chars in extracted dir name
           curl -fsSL \
             "https://github.com/grafana/grafana/archive/refs/tags/v${ENCODED_VERSION}.tar.gz" \
-            | tar xz
-          cd "grafana-${GRAFANA_VERSION}"
+            | tar xz --one-top-level=grafana-src
+          cd grafana-src
           GOWORK=off go mod download
           # Patch Go dependencies for known CVEs
           GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
