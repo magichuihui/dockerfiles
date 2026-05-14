@@ -1,0 +1,135 @@
+name: Build and Push Docker Image
+description: |
+  Build a Docker image from source, tag with software version, scan with Trivy, and push.
+  Each image directory must contain:
+    - Dockerfile (with ARG VERSION)
+    - version.txt (with VERSION=<semver>)
+    - build.sh (optional — for Go compilation or other pre-build steps)
+
+inputs:
+  image:
+    description: Image directory name (e.g. grafana, k6)
+    required: true
+  registry:
+    description: Container registry hostname
+    default: ghcr.io
+  go-version:
+    description: Go toolchain version (used when build.sh exists)
+    default: '1.26.3'
+
+runs:
+  using: composite
+
+  steps:
+    # ------------------------------------------------------------------
+    # Read software version from version.txt
+    # ------------------------------------------------------------------
+    - name: Read version
+      id: version
+      shell: bash
+      run: |
+        source ${{ inputs.image }}/version.txt
+        echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        SAFE_TAG=$(echo "${VERSION}" | tr '+' '-')
+        echo "safe-tag=${SAFE_TAG}" >> "$GITHUB_OUTPUT"
+        echo "VERSION=${VERSION} (Docker tag: ${SAFE_TAG})"
+
+    # ------------------------------------------------------------------
+    # Set up Go toolchain (only if image has build.sh)
+    # ------------------------------------------------------------------
+    - name: Set up Go
+      if: hashFiles(format('{0}/build.sh', inputs.image)) != ''
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ inputs.go-version }}
+
+    # ------------------------------------------------------------------
+    # Run image-specific build script (Go compilation, binary download…)
+    # Runs from the image directory so generated artifacts land in context
+    # ------------------------------------------------------------------
+    - name: Run build script
+      if: hashFiles(format('{0}/build.sh', inputs.image)) != ''
+      shell: bash
+      run: |
+        cd ${{ inputs.image }}
+        bash build.sh
+
+    # ------------------------------------------------------------------
+    # Docker Buildx (multi-platform, caching)
+    # ------------------------------------------------------------------
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+
+    # ------------------------------------------------------------------
+    # Authenticate to container registry
+    # ------------------------------------------------------------------
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ inputs.registry }}
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    # ------------------------------------------------------------------
+    # Generate Docker tags and labels
+    #   - branch, PR, short-sha for every event
+    #   - latest + software-version on main/master
+    #   - weekly-<YYYYww> for scheduled rebuilds
+    # ------------------------------------------------------------------
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.image }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,format=short,prefix=
+          type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+          type=raw,value=${{ steps.version.outputs.safe-tag }},enable=${{ github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' }}
+          type=schedule,pattern=weekly-{{date 'YYYYww'}}
+        flavor: |
+          latest=auto
+
+    # ------------------------------------------------------------------
+    # Build and push
+    # ------------------------------------------------------------------
+    - name: Build and push
+      id: build
+      uses: docker/build-push-action@v6
+      with:
+        context: ./${{ inputs.image }}
+        push: ${{ github.event_name != 'pull_request' }}
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        build-args: |
+          VERSION=${{ steps.version.outputs.version }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+        provenance: true
+        sbom: true
+
+    # ------------------------------------------------------------------
+    # Trivy vulnerability scan
+    #   PR → gate (exit 1 if HIGH+ found)
+    #   push → informational
+    # ------------------------------------------------------------------
+    - name: Run Trivy vulnerability scanner
+      uses: aquasecurity/trivy-action@v0.36.0
+      with:
+        image-ref: ${{ inputs.registry }}/${{ github.repository_owner }}/${{ inputs.image }}:${{ steps.meta.outputs.version }}
+        format: table
+        exit-code: ${{ github.event_name == 'pull_request' && 1 || 0 }}
+        severity: CRITICAL,HIGH
+        ignore-unfixed: true
+      continue-on-error: ${{ github.event_name != 'pull_request' }}
+
+    # ------------------------------------------------------------------
+    # Build summary
+    # ------------------------------------------------------------------
+    - name: Output digest
+      shell: bash
+      run: |
+        echo "### ✅ ${{ inputs.image }} built successfully" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Tags: ${{ steps.meta.outputs.tags }}" >> "$GITHUB_STEP_SUMMARY"
+        echo "- Digest: ${{ steps.build.outputs.digest }}" >> "$GITHUB_STEP_SUMMARY"

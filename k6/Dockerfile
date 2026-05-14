@@ -1,14 +1,14 @@
-ARG K6_VERSION=2.0.0
+ARG VERSION=2.0.0
 ARG TARGETARCH=amd64
 
 FROM alpine:3.20 AS release
 
-ARG K6_VERSION
+ARG VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl tar && \
     curl -fsSL \
-    "https://github.com/grafana/k6/releases/download/v${K6_VERSION}/k6-v${K6_VERSION}-linux-${TARGETARCH}.tar.gz" \
+    "https://github.com/grafana/k6/releases/download/v${VERSION}/k6-v${VERSION}-linux-${TARGETARCH}.tar.gz" \
     | tar xz -C /tmp --strip-components=1
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest

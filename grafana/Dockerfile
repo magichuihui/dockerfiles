@@ -1,16 +1,16 @@
 # syntax=docker/dockerfile:1
-ARG GRAFANA_VERSION=12.4.3+security-02
+ARG VERSION=13.0.1+security-01
 ARG TARGETARCH=amd64
 
 FROM alpine:3.20 AS release
 
-ARG GRAFANA_VERSION
+ARG VERSION
 ARG TARGETARCH
 
 RUN apk add --no-cache curl ca-certificates tar && \
     mkdir -p /tmp/grafana-release && \
     curl -fsSL \
-    "https://dl.grafana.com/oss/release/grafana-${GRAFANA_VERSION}.linux-${TARGETARCH}.tar.gz" \
+    "https://dl.grafana.com/oss/release/grafana-${VERSION}.linux-${TARGETARCH}.tar.gz" \
     | tar xz -C /tmp/grafana-release --strip-components=1
 
 RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins && \
@@ -18,7 +18,7 @@ RUN mkdir -p /var/lib/grafana /var/log/grafana /var/lib/grafana/plugins && \
 
 FROM cgr.dev/chainguard/glibc-dynamic:latest
 
-ARG GRAFANA_VERSION
+ARG VERSION
 ARG SOURCE_REPO="https://github.com/magichuihui/dockerfiles"
 
 LABEL org.opencontainers.image.title="Grafana (CI-built)"
