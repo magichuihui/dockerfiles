@@ -117,10 +117,9 @@ jobs:
           set -eux
           GRAFANA_VERSION="${{ steps.grafana-version.outputs.version }}"
           ENCODED_VERSION="${{ steps.grafana-version.outputs.encoded-version }}"
-          # --one-top-level avoids issues with special chars in extracted dir name
-          curl -fsSL \
+          mkdir -p grafana-src && curl -fsSL \
             "https://github.com/grafana/grafana/archive/refs/tags/v${ENCODED_VERSION}.tar.gz" \
-            | tar xz --one-top-level=grafana-src
+            | tar xz --strip-components=1 -C grafana-src
           cd grafana-src
           GOWORK=off go mod download
           # Patch Go dependencies for known CVEs
