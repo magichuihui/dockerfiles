@@ -92,14 +92,14 @@ jobs:
         id: grafana-version
         run: |
           FULL_VERSION=$(grep '^ARG GRAFANA_VERSION=' grafana/Dockerfile | cut -d= -f2)
-          # Strip +security suffix to get the base source tag (e.g. 12.4.3+security-02 -> 12.4.3)
-          BASE_VERSION=$(echo "$FULL_VERSION" | sed 's/+.*//')
+          # URL-encode + for GitHub archive URL (%2B)
+          ENCODED_VERSION=$(echo "$FULL_VERSION" | sed 's/\+/%2B/g')
           # Sanitize for Docker tag: replace + with -
           SAFE_TAG=$(echo "$FULL_VERSION" | tr '+' '-')
           echo "version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
-          echo "source-version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+          echo "encoded-version=$ENCODED_VERSION" >> "$GITHUB_OUTPUT"
           echo "safe-tag=$SAFE_TAG" >> "$GITHUB_OUTPUT"
-          echo "Grafana: $FULL_VERSION (source: v$BASE_VERSION, tag: $SAFE_TAG)"
+          echo "Grafana: $FULL_VERSION (encoded: $ENCODED_VERSION, tag: $SAFE_TAG)"
 
       # -------------------------------------------------------
       # Compile binary from source (grafana only) — avoids Docker
@@ -115,19 +115,18 @@ jobs:
         if: matrix.image == 'grafana'
         run: |
           set -eux
-          # Source tag on GitHub may differ from release version (e.g. 12.4.3+security-02 -> v12.4.3)
           GRAFANA_VERSION="${{ steps.grafana-version.outputs.version }}"
-          SOURCE_VERSION="${{ steps.grafana-version.outputs.source-version }}"
+          ENCODED_VERSION="${{ steps.grafana-version.outputs.encoded-version }}"
+          # Use URL-encoded version in URL (e.g. + -> %2B), full version for directory name
           curl -fsSL \
-            "https://github.com/grafana/grafana/archive/refs/tags/v${SOURCE_VERSION}.tar.gz" \
+            "https://github.com/grafana/grafana/archive/refs/tags/v${ENCODED_VERSION}.tar.gz" \
             | tar xz
-          cd "grafana-${SOURCE_VERSION}"
+          cd "grafana-${GRAFANA_VERSION}"
           GOWORK=off go mod download
           # Patch Go dependencies for known CVEs
           GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
           GOWORK=off go get github.com/apache/thrift@v0.23.0
           GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
-          GOWORK=off go get github.com/grafana/tempo@v2.10.3
           GOWORK=off go get github.com/moby/moby@v29.3.1
           GOWORK=off go get github.com/prometheus/prometheus@v0.311.3
           GOWORK=off CGO_ENABLED=1 go build -p=1 -tags oss \
