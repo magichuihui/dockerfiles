@@ -91,12 +91,15 @@ jobs:
         if: matrix.image == 'grafana'
         id: grafana-version
         run: |
-          GRAFANA_VERSION=$(grep '^ARG GRAFANA_VERSION=' grafana/Dockerfile | cut -d= -f2)
+          FULL_VERSION=$(grep '^ARG GRAFANA_VERSION=' grafana/Dockerfile | cut -d= -f2)
+          # Strip +security suffix to get the base source tag (e.g. 12.4.3+security-02 -> 12.4.3)
+          BASE_VERSION=$(echo "$FULL_VERSION" | sed 's/+.*//')
           # Sanitize for Docker tag: replace + with -
-          SAFE_TAG=$(echo "$GRAFANA_VERSION" | tr '+' '-')
-          echo "version=$GRAFANA_VERSION" >> "$GITHUB_OUTPUT"
+          SAFE_TAG=$(echo "$FULL_VERSION" | tr '+' '-')
+          echo "version=$FULL_VERSION" >> "$GITHUB_OUTPUT"
+          echo "source-version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
           echo "safe-tag=$SAFE_TAG" >> "$GITHUB_OUTPUT"
-          echo "Grafana version: $GRAFANA_VERSION (tag: $SAFE_TAG)"
+          echo "Grafana: $FULL_VERSION (source: v$BASE_VERSION, tag: $SAFE_TAG)"
 
       # -------------------------------------------------------
       # Compile binary from source (grafana only) — avoids Docker
@@ -112,11 +115,13 @@ jobs:
         if: matrix.image == 'grafana'
         run: |
           set -eux
+          # Source tag on GitHub may differ from release version (e.g. 12.4.3+security-02 -> v12.4.3)
           GRAFANA_VERSION="${{ steps.grafana-version.outputs.version }}"
+          SOURCE_VERSION="${{ steps.grafana-version.outputs.source-version }}"
           curl -fsSL \
-            "https://github.com/grafana/grafana/archive/refs/tags/v${GRAFANA_VERSION}.tar.gz" \
+            "https://github.com/grafana/grafana/archive/refs/tags/v${SOURCE_VERSION}.tar.gz" \
             | tar xz
-          cd "grafana-${GRAFANA_VERSION}"
+          cd "grafana-${SOURCE_VERSION}"
           GOWORK=off go mod download
           # Patch Go dependencies for known CVEs
           GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
