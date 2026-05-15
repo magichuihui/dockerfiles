@@ -105,6 +105,7 @@ runs:
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           VERSION=${{ steps.version.outputs.version }}
+        load: true
         cache-from: type=gha,scope=${{ inputs.image }}
         cache-to: type=gha,mode=max,scope=${{ inputs.image }}
         provenance: true
@@ -126,7 +127,49 @@ runs:
       continue-on-error: ${{ github.event_name != 'pull_request' }}
 
     # ------------------------------------------------------------------
-    # Build summary
+    # Smoke test — verify the binary inside the image is executable
+    # ------------------------------------------------------------------
+    - name: Smoke test
+      id: smoke
+      continue-on-error: true
+      shell: bash
+      run: |
+        IMG=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
+        echo "**Image:** \`$IMG\`" >> "$GITHUB_STEP_SUMMARY"
+
+        case "${{ inputs.image }}" in
+          k6)
+            CMD="version"
+            ENTRY=""
+            ;;
+          grafana)
+            CMD="-version"
+            ENTRY="--entrypoint /usr/share/grafana/bin/grafana"
+            ;;
+          *)
+            CMD="-version"
+            ENTRY=""
+            ;;
+        esac
+
+        set +e
+        OUTPUT=$(docker run --rm $ENTRY "$IMG" $CMD 2>&1)
+        RC=$?
+        set -e
+
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
+        echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+        echo '```' >> "$GITHUB_STEP_SUMMARY"
+        echo "**Exit code:** $RC" >> "$GITHUB_STEP_SUMMARY"
+
+        if [ $RC -ne 0 ] || [ -z "$OUTPUT" ]; then
+          echo "❌ Smoke test FAILED" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
+        fi
+        echo "✅ Version check passed" >> "$GITHUB_STEP_SUMMARY"
+
+    # ------------------------------------------------------------------
+    # Output digest
     # ------------------------------------------------------------------
     - name: Output digest
       shell: bash
