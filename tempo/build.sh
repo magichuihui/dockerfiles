@@ -14,12 +14,6 @@ curl -fsSL \
 echo "=== Building Tempo binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
-# thrift CVE fix
-GOWORK=off go get github.com/apache/thrift@v0.23.0
-# prometheus v0.307 → v0.311 removes tsdb/errors (same issue as grafana)
-# try v0.308.1 which is the last v0.307-compatible version with fewer CVEs
-GOWORK=off go get github.com/prometheus/prometheus@v0.308.1 2>/dev/null || echo "prometheus upgrade failed (non-fatal)"
-GOWORK=off go mod tidy
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/tempo" ./cmd/tempo/
 
 echo "=== Cleanup ==="
