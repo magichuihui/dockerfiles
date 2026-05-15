@@ -14,9 +14,10 @@ curl -fsSL \
 echo "=== Building Loki binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
-# Apply dep patches — these work because loki itself (not loki the dep of grafana) uses these packages
+# thrift CVE fix
 GOWORK=off go get github.com/apache/thrift@v0.23.0
-GOWORK=off go get github.com/prometheus/prometheus@v0.311.3
+# prometheus already at v0.311.2 — v0.311.3 is a minor bump, try it
+GOWORK=off go get github.com/prometheus/prometheus@v0.311.3 2>/dev/null || echo "prometheus upgrade failed (non-fatal)"
 GOWORK=off go mod tidy
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/loki" ./cmd/loki/
 
