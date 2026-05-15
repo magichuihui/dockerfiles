@@ -14,8 +14,7 @@ curl -fsSL \
 echo "=== Building Loki binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
-GOWORK=off go get github.com/apache/thrift@v0.23.0
-# prometheus is already at v0.311.x — upgrade to v0.311.3 skipped, see grafana
+# apache/thrift and prometheus patches — see grafana build.sh for known limitations
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/loki" ./cmd/loki/
 
 echo "=== Cleanup ==="
