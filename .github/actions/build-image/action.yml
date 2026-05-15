@@ -160,6 +160,8 @@ runs:
         RC=$?
         set -e
 
+        echo ">>> Smoke test (${{ inputs.image }}) exit=$RC"
+        echo "$OUTPUT"
         echo '```' >> "$GITHUB_STEP_SUMMARY"
         echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
         echo '```' >> "$GITHUB_STEP_SUMMARY"
