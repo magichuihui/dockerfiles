@@ -13,8 +13,13 @@ curl -fsSL \
 
 echo "=== Building Tempo binary ==="
 cd "$SRC_DIR"
+GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+GO_LDFLAGS="-X main.Version=${VERSION} \
+  -X main.Branch=${GIT_BRANCH} \
+  -X main.Revision=${GIT_REVISION}"
 GOWORK=off go mod download
-GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/tempo" ./cmd/tempo/
+GOWORK=off CGO_ENABLED=1 go build -ldflags "${GO_LDFLAGS}" -o "$SCRIPT_DIR/tempo" ./cmd/tempo/
 
 echo "=== Cleanup ==="
 rm -rf "$SRC_DIR"

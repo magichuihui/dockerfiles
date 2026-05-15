@@ -22,7 +22,14 @@ GOWORK=off go get github.com/jackc/pgx/v5@v5.9.0
 GOWORK=off go get github.com/apache/thrift@v0.23.0
 GOWORK=off go get go.opentelemetry.io/otel/sdk@v1.43.0
 # prometheus pinned by loki v3.5.11 internal APIs — skip direct upgrade
+GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+GO_LDFLAGS="-X main.version=${VERSION} \
+  -X main.commit=${GIT_REVISION} \
+  -X main.buildBranch=${GIT_BRANCH} \
+  -X main.buildstamp=$(date -u +%s)"
 GOWORK=off CGO_ENABLED=1 go build -p=1 -tags oss \
+  -ldflags "${GO_LDFLAGS}" \
   -o "$SCRIPT_DIR/grafana-server" ./pkg/cmd/grafana
 
 echo "=== Cleanup ==="

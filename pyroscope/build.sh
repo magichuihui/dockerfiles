@@ -13,8 +13,15 @@ curl -fsSL \
 
 echo "=== Building Pyroscope binary ==="
 cd "$SRC_DIR"
+GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+GO_LDFLAGS="-X github.com/prometheus/common/version.Version=${VERSION} \
+  -X github.com/prometheus/common/version.Branch=${GIT_BRANCH} \
+  -X github.com/prometheus/common/version.Revision=${GIT_REVISION} \
+  -X github.com/prometheus/common/version.BuildUser=ci \
+  -X github.com/prometheus/common/version.BuildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 GOWORK=off go mod download
-GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/pyroscope" ./cmd/pyroscope/
+GOWORK=off CGO_ENABLED=1 go build -ldflags "${GO_LDFLAGS}" -o "$SCRIPT_DIR/pyroscope" ./cmd/pyroscope/
 
 echo "=== Cleanup ==="
 rm -rf "$SRC_DIR"

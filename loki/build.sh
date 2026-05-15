@@ -13,8 +13,15 @@ curl -fsSL \
 
 echo "=== Building Loki binary ==="
 cd "$SRC_DIR"
+GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+GO_LDFLAGS="-X github.com/grafana/loki/v3/pkg/util/build.Version=${VERSION} \
+  -X github.com/grafana/loki/v3/pkg/util/build.Revision=${GIT_REVISION} \
+  -X github.com/grafana/loki/v3/pkg/util/build.Branch=${GIT_BRANCH} \
+  -X github.com/grafana/loki/v3/pkg/util/build.BuildUser=ci \
+  -X github.com/grafana/loki/v3/pkg/util/build.BuildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 GOWORK=off go mod download
-GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/loki" ./cmd/loki/
+GOWORK=off CGO_ENABLED=1 go build -ldflags "${GO_LDFLAGS}" -o "$SCRIPT_DIR/loki" ./cmd/loki/
 
 echo "=== Cleanup ==="
 rm -rf "$SRC_DIR"

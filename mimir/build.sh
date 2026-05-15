@@ -14,8 +14,13 @@ curl -fsSL \
 
 echo "=== Building Mimir binary ==="
 cd "$SRC_DIR"
+GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+GO_LDFLAGS="-X github.com/grafana/mimir/pkg/util/version.Version=${VERSION} \
+  -X github.com/grafana/mimir/pkg/util/version.Branch=${GIT_BRANCH} \
+  -X github.com/grafana/mimir/pkg/util/version.Revision=${GIT_REVISION}"
 GOWORK=off go mod download
-GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/mimir" ./cmd/mimir/
+GOWORK=off CGO_ENABLED=1 go build -ldflags "${GO_LDFLAGS}" -o "$SCRIPT_DIR/mimir" ./cmd/mimir/
 
 echo "=== Cleanup ==="
 rm -rf "$SRC_DIR"
