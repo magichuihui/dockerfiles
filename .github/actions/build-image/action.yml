@@ -42,6 +42,7 @@ runs:
       uses: actions/setup-go@v5
       with:
         go-version: ${{ inputs.go-version }}
+        cache: true
 
     # ------------------------------------------------------------------
     # Run image-specific build script (Go compilation, binary download…)
@@ -104,8 +105,8 @@ runs:
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           VERSION=${{ steps.version.outputs.version }}
-        cache-from: type=gha
-        cache-to: type=gha,mode=max
+        cache-from: type=gha,scope=${{ inputs.image }}
+        cache-to: type=gha,mode=max,scope=${{ inputs.image }}
         provenance: true
         sbom: true
 
