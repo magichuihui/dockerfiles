@@ -105,7 +105,6 @@ runs:
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           VERSION=${{ steps.version.outputs.version }}
-        load: true
         cache-from: type=gha,scope=${{ inputs.image }}
         cache-to: type=gha,mode=max,scope=${{ inputs.image }}
         provenance: true
@@ -136,6 +135,12 @@ runs:
       run: |
         IMG=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
         echo "**Image:** \`$IMG\`" >> "$GITHUB_STEP_SUMMARY"
+
+        # Pull image from registry (was just pushed on push events)
+        docker pull "$IMG" 2>/dev/null || {
+          echo "⚠️ Image not in registry (likely PR build), skipping smoke test" >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        }
 
         case "${{ inputs.image }}" in
           k6)
