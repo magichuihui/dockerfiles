@@ -60,8 +60,6 @@ runs:
     # ------------------------------------------------------------------
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v3
-      with:
-        driver: docker
 
     # ------------------------------------------------------------------
     # Authenticate to container registry
@@ -107,7 +105,6 @@ runs:
         labels: ${{ steps.meta.outputs.labels }}
         build-args: |
           VERSION=${{ steps.version.outputs.version }}
-        load: true
         cache-from: type=gha,scope=${{ inputs.image }}
         cache-to: type=gha,mode=max,scope=${{ inputs.image }}
         provenance: true
@@ -136,10 +133,12 @@ runs:
       continue-on-error: true
       shell: bash
       run: |
-        IMG=$(echo "${{ steps.meta.outputs.tags }}" | head -1)
-        echo "**Image:** \`$IMG\`" >> "$GITHUB_STEP_SUMMARY"
+        # Build a plain test image (no buildx) so it's in the local Docker daemon
+        TAG="smoke-test:${{ inputs.image }}"
+        docker build -t "$TAG" ./${{ inputs.image }} \
+          --build-arg VERSION=${{ steps.version.outputs.version }}
 
-        # Image is available locally via load:true
+        echo "**Image:** \`$TAG\`" >> "$GITHUB_STEP_SUMMARY"
 
         case "${{ inputs.image }}" in
           k6)
@@ -157,7 +156,7 @@ runs:
         esac
 
         set +e
-        OUTPUT=$(docker run --rm $ENTRY "$IMG" $CMD 2>&1)
+        OUTPUT=$(docker run --rm $ENTRY "$TAG" $CMD 2>&1)
         RC=$?
         set -e
 
