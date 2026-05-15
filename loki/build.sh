@@ -15,7 +15,7 @@ echo "=== Building Loki binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
 GOWORK=off go get github.com/apache/thrift@v0.23.0
-GOWORK=off go get github.com/prometheus/prometheus@v0.311.3
+# prometheus is already at v0.311.x — upgrade to v0.311.3 skipped, see grafana
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/loki" ./cmd/loki/
 
 echo "=== Cleanup ==="

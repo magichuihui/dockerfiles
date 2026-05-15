@@ -15,7 +15,7 @@ echo "=== Building Tempo binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
 GOWORK=off go get github.com/apache/thrift@v0.23.0
-GOWORK=off go get github.com/prometheus/prometheus@v0.311.3
+# prometheus v0.307 → v0.311 breaks tsdb/errors — skip, same issue as grafana's loki dep
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/tempo" ./cmd/tempo/
 
 echo "=== Cleanup ==="
