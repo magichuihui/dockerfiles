@@ -14,7 +14,10 @@ curl -fsSL \
 echo "=== Building Tempo binary ==="
 cd "$SRC_DIR"
 GOWORK=off go mod download
-# apache/thrift and prometheus patches — see grafana build.sh for known limitations
+# Apply dep patches
+GOWORK=off go get github.com/apache/thrift@v0.23.0
+GOWORK=off go get github.com/prometheus/prometheus@v0.311.3
+GOWORK=off go mod tidy
 GOWORK=off CGO_ENABLED=1 go build -o "$SCRIPT_DIR/tempo" ./cmd/tempo/
 
 echo "=== Cleanup ==="
