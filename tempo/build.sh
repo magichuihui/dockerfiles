@@ -12,9 +12,9 @@ curl -fsSL \
   | tar xz --strip-components=1 -C "$SRC_DIR"
 
 echo "=== Building Tempo binary ==="
-cd "$SRC_DIR"
 GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
+cd "$SRC_DIR"
 GO_LDFLAGS="-X main.Version=${VERSION} \
   -X main.Branch=${GIT_BRANCH} \
   -X main.Revision=${GIT_REVISION}"

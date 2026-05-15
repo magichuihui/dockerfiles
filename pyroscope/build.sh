@@ -12,14 +12,14 @@ curl -fsSL \
   | tar xz --strip-components=1 -C "$SRC_DIR"
 
 echo "=== Building Pyroscope binary ==="
-cd "$SRC_DIR"
 GIT_REVISION=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "master")
-GO_LDFLAGS="-X github.com/prometheus/common/version.Version=${VERSION} \
-  -X github.com/prometheus/common/version.Branch=${GIT_BRANCH} \
-  -X github.com/prometheus/common/version.Revision=${GIT_REVISION} \
-  -X github.com/prometheus/common/version.BuildUser=ci \
-  -X github.com/prometheus/common/version.BuildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+cd "$SRC_DIR"
+GO_LDFLAGS="-X github.com/grafana/pyroscope/v2/pkg/util/build.Version=${VERSION} \
+  -X github.com/grafana/pyroscope/v2/pkg/util/build.Branch=${GIT_BRANCH} \
+  -X github.com/grafana/pyroscope/v2/pkg/util/build.Revision=${GIT_REVISION} \
+  -X github.com/grafana/pyroscope/v2/pkg/util/build.BuildUser=ci \
+  -X github.com/grafana/pyroscope/v2/pkg/util/build.BuildDate=$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 GOWORK=off go mod download
 GOWORK=off CGO_ENABLED=1 go build -ldflags "${GO_LDFLAGS}" -o "$SCRIPT_DIR/pyroscope" ./cmd/pyroscope/
 
